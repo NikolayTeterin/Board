@@ -1,13 +1,14 @@
-#define swPin 3 //пин включения приемника
-#define rxPin 2 //пин приемника
-#define led 13 //пин приемника
+#define swPin 3 //пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+#define rxPin 2 //пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+//#define led 13 //пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 #define lock 4
 #define drUnlock 5
 #define pasUnlock  6
+#define indicator 13
 #define horn 7
-#define IMPULS_TIME 200 // длительность импульсов может плавать в зависимости от заряда батареии - макс допуск 200 мкс
+#define IMPULS_TIME 200 // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ - пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ 200 пїЅпїЅпїЅ
 #define DOOR_MOTOR_TIME 300
-#define HORN_TIME 100
+#define INDICATION_TIME 100
 
 volatile unsigned long prevtime;
 volatile unsigned int lolen, hilen, state;
@@ -17,6 +18,7 @@ volatile static long code = 0;
 static int DoorPins[] = { lock, drUnlock, pasUnlock };
 static int opIndex = 0;
 long time;
+bool mute = true;
 
 boolean CheckValue(unsigned int base, unsigned int value)
 {
@@ -34,7 +36,7 @@ void grab()
 
 	if (state == LOW)
 	{
-		// последовательность закончилась
+		// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 		if (CheckValue(320, hilen) && CheckValue(640, lolen)) // valid 1
 		{
 			cameCode = (cameCode << 1) | 1;
@@ -58,11 +60,19 @@ void grab()
 		}
 }
 
-void Horn()
+void Indication(bool beep)
 {
-	digitalWrite(horn, LOW);
-	delay(HORN_TIME);
-	digitalWrite(horn, HIGH);
+	if (mute)
+		beep = false;
+	digitalWrite(indicator, HIGH);
+	if (beep)
+		digitalWrite(horn, LOW);
+
+	delay(INDICATION_TIME);
+
+	digitalWrite(indicator, LOW);
+	if (beep)
+		digitalWrite(horn, HIGH);
 }
 
 int DelayTime(int time)
@@ -73,34 +83,30 @@ int DelayTime(int time)
 void DoorOperation(int i)
 {
 	int time = 0;
-	
-	digitalWrite(led, HIGH);
+	bool beep = i == 2 ? false : true;
+
 	digitalWrite(DoorPins[i], LOW);
-	if (i != 2)
+	Indication(beep);
+	time += INDICATION_TIME;
+	if (i != 0)
 	{
-		Horn();
-		time += HORN_TIME;
-		if (i == 1)
-		{
-			delay(time);
-			Horn();
-			time += 2 * HORN_TIME;
-		}
+		delay(time);
+		Indication(beep);
+		time += 2 * INDICATION_TIME;
 	}
 	time = DOOR_MOTOR_TIME > time ? DOOR_MOTOR_TIME - time : 0;
 	delay(time);
 
-	digitalWrite(led, LOW);
 	digitalWrite(DoorPins[i], HIGH);
 
-	time = IMPULS_TIME > max(HORN_TIME, DOOR_MOTOR_TIME) ? IMPULS_TIME - max(HORN_TIME, DOOR_MOTOR_TIME) : 0;
+	time = IMPULS_TIME > max(INDICATION_TIME, DOOR_MOTOR_TIME) ? IMPULS_TIME - max(INDICATION_TIME, DOOR_MOTOR_TIME) : 0;
 	delay(time > 0 ? time : 0);
 }
 
 void setup()
 {
 	pinMode(rxPin, INPUT);
-	// всегда устанавливаем пин включения приемника в 0 и не трогаем его больше
+	// пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ 0 пїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 	pinMode(swPin, OUTPUT);
 	digitalWrite(swPin, LOW);
 
@@ -116,13 +122,13 @@ void setup()
 	pinMode(horn, OUTPUT);
 	digitalWrite(horn, HIGH);
 
-	pinMode(led, OUTPUT);
-	digitalWrite(led, LOW);
+	pinMode(indicator, OUTPUT);
+	digitalWrite(indicator, LOW);
 
-	Serial.begin(9600);  // тут поставьте свою скорость
+	Serial.begin(9600);  // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 	Serial.println("Came started");
 
-	attachInterrupt(0, grab, CHANGE); // обратите внимание на первый параметр - если у вас другая ардуина, он может быть не 1, а 0!
+	attachInterrupt(0, grab, CHANGE); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ - пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ 1, пїЅ 0!
 	interrupts();
 
 
