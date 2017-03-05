@@ -1,12 +1,12 @@
-#define swPin 3 //��� ��������� ���������
-#define rxPin 2 //��� ���������
-//#define led 13 //��� ���������
+#define swPin 3 
+#define rxPin 2 
+//#define led 13 
 #define lock 4
 #define drUnlock 5
 #define pasUnlock  6
 #define indicator 13
 #define horn 7
-#define IMPULS_TIME 200 // ������������ ��������� ����� ������� � ����������� �� ������ �������� - ���� ������ 200 ���
+#define IMPULS_TIME 200
 #define DOOR_MOTOR_TIME 300
 #define INDICATION_TIME 100
 
@@ -18,7 +18,7 @@ volatile static long code = 0;
 static int DoorPins[] = { lock, drUnlock, pasUnlock };
 static int opIndex = 0;
 long time;
-bool mute = true;
+bool mute = false;
 
 boolean CheckValue(unsigned int base, unsigned int value)
 {
@@ -36,7 +36,6 @@ void grab()
 
 	if (state == LOW)
 	{
-		// ������������������ �����������
 		if (CheckValue(320, hilen) && CheckValue(640, lolen)) // valid 1
 		{
 			cameCode = (cameCode << 1) | 1;
@@ -106,7 +105,7 @@ void DoorOperation(int i)
 void setup()
 {
 	pinMode(rxPin, INPUT);
-	// ������ ������������� ��� ��������� ��������� � 0 � �� ������� ��� ������
+
 	pinMode(swPin, OUTPUT);
 	digitalWrite(swPin, LOW);
 
@@ -125,10 +124,10 @@ void setup()
 	pinMode(indicator, OUTPUT);
 	digitalWrite(indicator, LOW);
 
-	Serial.begin(9600);  // ��� ��������� ���� ��������
+	Serial.begin(9600);
 	Serial.println("Came started");
 
-	attachInterrupt(0, grab, CHANGE); // �������� �������� �� ������ �������� - ���� � ��� ������ �������, �� ����� ���� �� 1, � 0!
+	attachInterrupt(0, grab, CHANGE);
 	interrupts();
 
 
